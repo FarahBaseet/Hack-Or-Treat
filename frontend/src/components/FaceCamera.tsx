@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { getPeople, type Person } from "@/lib/api";
 
 type FaceBox = { x: number; y: number; width: number; height: number };
-type TrackedFace = { box: FaceBox; person: Person | null; recognized: boolean };
+type TrackedFace = {
+  box: FaceBox;
+  person: Person | null;
+  status: "checking" | "recognized" | "unknown";
+};
 
 const FACE_MATCH_THRESHOLD = 0.55;
 const RECOGNITION_DELAY_MS = 1200;
+const UNKNOWN_CUE_DELAY_MS = 1200;
 
 let faceModelsLoad: Promise<void> | null = null;
 
@@ -19,10 +24,59 @@ export default function FaceCamera() {
     "loading" | "searching" | "scanning" | "error"
   >("loading");
   const [scanError, setScanError] = useState("");
+  const [soundError, setSoundError] = useState("");
   const [trackedFaces, setTrackedFaces] = useState<TrackedFace[]>([]);
   const [videoSize, setVideoSize] = useState<{ width: number; height: number } | null>(null);
   const [scanProgress, setScanProgress] = useState(0);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const unknownAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+        void audioContextRef.current.close();
+      }
+      unknownAudioRef.current?.pause();
+    };
+  }, []);
+
+  const playRecognitionChime = useCallback(() => {
+    const audioContext = audioContextRef.current;
+    if (!audioContext || audioContext.state !== "running") {
+      setSoundError("Recognition sound is unavailable. Check your browser audio settings.");
+      return;
+    }
+
+    const startAt = audioContext.currentTime;
+    [880, 1108.73, 1318.51].forEach((frequency, index) => {
+      const start = startAt + index * 0.11;
+      const oscillator = audioContext.createOscillator();
+      const volume = audioContext.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = frequency;
+      volume.gain.setValueAtTime(0.0001, start);
+      volume.gain.exponentialRampToValueAtTime(0.14, start + 0.02);
+      volume.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
+      oscillator.connect(volume);
+      volume.connect(audioContext.destination);
+      oscillator.start(start);
+      oscillator.stop(start + 0.3);
+    });
+  }, []);
+
+  const playUnknownCue = useCallback(() => {
+    const audio = unknownAudioRef.current;
+    if (!audio) {
+      setSoundError("The unknown-face sound is unavailable.");
+      return;
+    }
+
+    audio.currentTime = 0;
+    void audio.play().catch(() => {
+      setSoundError("Could not play the unknown-face sound. Check your browser audio settings.");
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return;
@@ -81,6 +135,9 @@ export default function FaceCamera() {
     let active = true;
     let timer: number | undefined;
     const recognizedSince = new Map<number, number>();
+    const chimePlayedFor = new Set<number>();
+    let unknownFaceSince: number | null = null;
+    let unknownCuePlayed = false;
 
     const scanForFaces = async () => {
       try {
@@ -150,31 +207,63 @@ export default function FaceCamera() {
 
               const now = Date.now();
               const visiblePeople = new Set<number>();
-              const nextFaces = faces.map(({ detection, descriptor }) => {
+              const candidates = faces.map(({ detection, descriptor }) => {
                 const match = matcher?.findBestMatch(descriptor);
                 const person =
                   match && match.distance <= FACE_MATCH_THRESHOLD
                     ? peopleById.get(Number(match.label)) ?? null
                     : null;
 
-                if (!person) return { box: detection.box, person: null, recognized: false };
+                return { box: detection.box, person };
+              });
+              const hasUnknownFace = candidates.some(({ person }) => person === null);
 
+              if (hasUnknownFace) {
+                unknownFaceSince ??= now;
+              } else {
+                unknownFaceSince = null;
+                unknownCuePlayed = false;
+              }
+              const unknownIsConfirmed =
+                unknownFaceSince !== null && now - unknownFaceSince >= UNKNOWN_CUE_DELAY_MS;
+
+              const nextFaces = candidates.map(({ box, person }) => {
+                if (!person) {
+                  return {
+                    box,
+                    person: null,
+                    status: unknownIsConfirmed ? "unknown" as const : "checking" as const,
+                  };
+                }
                 visiblePeople.add(person.id);
                 const startedAt = recognizedSince.get(person.id) ?? now;
                 recognizedSince.set(person.id, startedAt);
+                const recognized = now - startedAt >= RECOGNITION_DELAY_MS;
+                if (recognized && !chimePlayedFor.has(person.id)) {
+                  chimePlayedFor.add(person.id);
+                  playRecognitionChime();
+                }
                 return {
-                  box: detection.box,
+                  box,
                   person,
-                  recognized: now - startedAt >= RECOGNITION_DELAY_MS,
+                  status: recognized ? "recognized" as const : "checking" as const,
                 };
               });
 
               for (const id of recognizedSince.keys()) {
-                if (!visiblePeople.has(id)) recognizedSince.delete(id);
+                if (!visiblePeople.has(id)) {
+                  recognizedSince.delete(id);
+                  chimePlayedFor.delete(id);
+                }
+              }
+
+              if (unknownIsConfirmed && !unknownCuePlayed) {
+                unknownCuePlayed = true;
+                playUnknownCue();
               }
 
               setTrackedFaces(nextFaces);
-              setScanState(faces.length > 0 ? "scanning" : "searching");
+              setScanState(nextFaces.some((face) => face.status === "checking") ? "scanning" : "searching");
             }
             timer = window.setTimeout(() => void scan(), 300);
           } catch {
@@ -203,7 +292,7 @@ export default function FaceCamera() {
       active = false;
       if (timer !== undefined) window.clearTimeout(timer);
     };
-  }, [open, cameraState]);
+  }, [open, cameraState, playRecognitionChime, playUnknownCue]);
 
   useEffect(() => {
     if (!open || cameraState !== "ready" || scanState !== "scanning") return;
@@ -217,6 +306,19 @@ export default function FaceCamera() {
 
   const toggleCamera = () => {
     if (!open) {
+      setSoundError("");
+      unknownAudioRef.current ??= new Audio(
+        "/sounds/Adobe-Express-zombie%20saying%20Brains.mp3",
+      );
+      unknownAudioRef.current.preload = "auto";
+      try {
+        audioContextRef.current ??= new window.AudioContext();
+        void audioContextRef.current.resume().catch(() => {
+          setSoundError("Recognition sound is unavailable. Check your browser audio settings.");
+        });
+      } catch {
+        setSoundError("Recognition sound is unavailable in this browser.");
+      }
       setCameraState("loading");
       setErrorMessage("");
       setScanState("loading");
@@ -224,6 +326,9 @@ export default function FaceCamera() {
       setTrackedFaces([]);
       setVideoSize(null);
       setScanProgress(0);
+    } else {
+      unknownAudioRef.current?.pause();
+      if (unknownAudioRef.current) unknownAudioRef.current.currentTime = 0;
     }
     setOpen((current) => !current);
   };
@@ -266,7 +371,7 @@ export default function FaceCamera() {
               viewBox={`0 0 ${videoSize.width} ${videoSize.height}`}
               preserveAspectRatio="xMidYMid slice"
             >
-              {trackedFaces.map(({ box, person, recognized }, index) => {
+              {trackedFaces.map(({ box, person, status }, index) => {
                 const padding = box.width * 0.18;
                 const x = Math.max(0, box.x - padding);
                 const y = Math.max(0, box.y - padding);
@@ -275,13 +380,15 @@ export default function FaceCamera() {
                 const width = right - x;
                 const height = bottom - y;
                 const cornerLength = Math.min(width, height) * 0.22;
-                const color = recognized ? "#86efac" : "#67e8f9";
-                const label = recognized && person
+                const color =
+                  status === "recognized" ? "#86efac" : status === "unknown" ? "#f87171" : "#67e8f9";
+                const label = status === "recognized" && person
                   ? `Friendly human, ${person.name} — DO NOT EAT`
-                  : person
-                    ? "Checking identity..."
-                    : "Unknown person";
+                  : status === "unknown"
+                    ? "Unknown Person"
+                    : "Checking identity...";
                 const labelWidth = Math.min(videoSize.width, Math.max(width, 240));
+                const labelTextWidth = Math.max(1, labelWidth - 16);
                 const labelX = Math.max(0, Math.min(x, videoSize.width - labelWidth));
                 const labelY = Math.max(0, y - 42);
                 const corners = [
@@ -302,7 +409,7 @@ export default function FaceCamera() {
                       strokeLinejoin="miter"
                       vectorEffect="non-scaling-stroke"
                     />
-                    {scanState === "scanning" && (
+                    {status === "checking" && scanState === "scanning" && (
                       <line
                         x1={x}
                         x2={x + width}
@@ -320,7 +427,13 @@ export default function FaceCamera() {
                       width={labelWidth}
                       height={36}
                       rx={5}
-                      fill={recognized ? "#14532d" : "#164e63"}
+                      fill={
+                        status === "recognized"
+                          ? "#14532d"
+                          : status === "unknown"
+                            ? "#7f1d1d"
+                            : "#164e63"
+                      }
                       stroke={color}
                       strokeWidth={2}
                     />
@@ -331,6 +444,8 @@ export default function FaceCamera() {
                       fontSize={16}
                       fontWeight={700}
                       textAnchor="middle"
+                      textLength={labelTextWidth}
+                      lengthAdjust="spacingAndGlyphs"
                     >
                       {label}
                     </text>
@@ -352,6 +467,11 @@ export default function FaceCamera() {
       {open && cameraState === "ready" && (
         <p className="mt-3 text-center text-sm text-slate-600">
           Face matching runs on this device using enrolled people. Results can be wrong.
+        </p>
+      )}
+      {open && soundError && (
+        <p role="status" className="mt-2 text-center text-sm text-amber-300">
+          {soundError}
         </p>
       )}
     </section>

@@ -14,7 +14,7 @@ export default function LoginPage() {
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 bg-gradient-to-br from-slate-700 via-slate-800 to-emerald-950 px-5 py-10">
+    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center gap-6 bg-gradient-to-br from-emerald-800 via-green-800 to-teal-900 px-5 py-10">
       <header className="text-center">
         <p className="text-sm font-bold uppercase tracking-[0.3em] text-emerald-300">
           MemoryMate

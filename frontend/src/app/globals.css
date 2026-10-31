@@ -1,4 +1,25 @@
 @import "tailwindcss";
+
+/* ===== Dashboard design tokens (design/memorymate-design-handoff.md) ===== */
+@theme inline {
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-body: var(--font-atkinson), system-ui, sans-serif;
+}
+
+@theme {
+  --color-soft: #e3f5ea;
+  --color-sage: #dce3c6;
+  --color-muted: #b9d9c8;
+  --color-label: #cff1dd;
+  --color-lost: #ff6b5e;
+  --color-routine: #dce3c6;
+  --color-who: #d3dae6;
+  --color-done: #9cf5b5;
+  --color-box: rgb(4 40 29 / 0.55);
+  --color-box-border: rgb(207 241 221 / 0.3);
+  --color-focus: #ffd98a;
+}
+
 /* ===== App theme ===== */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -24,11 +45,12 @@
   --glow-2: rgba(14, 165, 233, 0.15);
 }
 
+/* Every page: green gradient with criss-cross diagonal lines (design/memorymate-design-handoff.md). */
 body {
   background:
-    radial-gradient(circle at 10% 0%, var(--glow-1), transparent 45%),
-    radial-gradient(circle at 90% 35%, var(--glow-2), transparent 45%),
-    var(--bg);
+    repeating-linear-gradient(45deg, rgb(255 255 255 / 0.07) 0 2px, transparent 2px 24px),
+    repeating-linear-gradient(-45deg, rgb(255 255 255 / 0.07) 0 2px, transparent 2px 24px),
+    linear-gradient(160deg, #117550 0%, #0a4a33 50%, #04281d 100%);
   background-attachment: fixed;
   color: var(--text);
   transition: background 0.3s, color 0.3s;

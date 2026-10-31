@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { getPeople, type Person } from "@/lib/api";
+import { box, CameraIcon, focusRing, tile } from "./ui";
 
 type FaceBox = { x: number; y: number; width: number; height: number };
 type TrackedFace = {
@@ -333,19 +334,27 @@ export default function FaceCamera() {
     setOpen((current) => !current);
   };
 
+  // Renders two grid items: the "Who is this?" tile, and (when open) a full-width camera panel below the tiles.
   return (
-    <section className="rounded-3xl bg-white p-6 text-slate-950 shadow">
+    <>
       <button
         type="button"
         onClick={toggleCamera}
         aria-expanded={open}
-        className="flex min-h-20 w-full items-center justify-center rounded-2xl bg-indigo-700 px-4 text-3xl font-extrabold text-white active:bg-indigo-800"
+        aria-controls="who-is-this-camera"
+        className={`${tile} text-who`}
       >
-        {open ? "Close camera" : "Who is this?"}
+        <CameraIcon className="size-8" />
+        Who is this?
       </button>
 
       {open && (
-        <div className="relative mt-4 aspect-video overflow-hidden rounded-2xl bg-slate-900">
+      <section
+        id="who-is-this-camera"
+        aria-label="Who is this? camera"
+        className={`${box} col-span-2 flex flex-col gap-3 p-3`}
+      >
+        <div className="relative aspect-video overflow-hidden rounded-none bg-[#04281d]">
           <video
             ref={videoRef}
             autoPlay
@@ -457,23 +466,31 @@ export default function FaceCamera() {
           {cameraState === "ready" && scanState === "error" && (
             <div
               role="alert"
-              className="absolute inset-x-3 bottom-3 rounded-xl bg-slate-950/80 px-4 py-3 text-center text-white"
+              className="absolute inset-x-3 bottom-3 rounded-none bg-slate-950/80 px-4 py-3 text-center text-white"
             >
               {scanError}
             </div>
           )}
         </div>
+        {cameraState === "ready" && (
+          <p className="text-center font-body text-sm text-muted">
+            Face matching runs on this device using enrolled people. Results can be wrong.
+          </p>
+        )}
+        {soundError && (
+          <p role="status" className="text-center font-body text-sm text-amber-300">
+            {soundError}
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={toggleCamera}
+          className={`${box} ${focusRing} min-h-15 w-full px-4 font-display text-[1.375rem] font-bold text-who`}
+        >
+          Close camera
+        </button>
+      </section>
       )}
-      {open && cameraState === "ready" && (
-        <p className="mt-3 text-center text-sm text-slate-600">
-          Face matching runs on this device using enrolled people. Results can be wrong.
-        </p>
-      )}
-      {open && soundError && (
-        <p role="status" className="mt-2 text-center text-sm text-amber-300">
-          {soundError}
-        </p>
-      )}
-    </section>
+    </>
   );
 }

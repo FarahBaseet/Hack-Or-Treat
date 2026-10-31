@@ -9,6 +9,7 @@ import {
   type LostInfo,
 } from "@/lib/api";
 import LostModal from "./LostModal";
+import { box, focusRing } from "./ui";
 
 export default function LostButton() {
   const [open, setOpen] = useState(false);
@@ -34,9 +35,10 @@ export default function LostButton() {
       <button
         type="button"
         onClick={handlePress}
-        className="w-full min-h-28 rounded-3xl bg-red-600 px-6 py-6 text-4xl font-extrabold text-white shadow-lg ring-4 ring-red-300 active:scale-[0.98] active:bg-red-700"
+        className={`${box} ${focusRing} flex min-h-25 w-full flex-col items-center justify-center gap-1 px-4 py-3 text-center`}
       >
-        I&apos;m Lost
+        <span className="font-display text-4xl leading-tight font-bold text-lost">I&apos;m lost</span>
+        <span className="font-body text-base text-white">Tap and we will help you get home</span>
       </button>
       {open && <LostModal info={info} onClose={() => setOpen(false)} />}
     </>

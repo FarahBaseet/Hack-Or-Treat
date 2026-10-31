@@ -45,9 +45,18 @@ class PersonOut(ORMModel):
     descriptor: list[float]
 
 
+class LostIn(BaseModel):
+    lat: float = Field(ge=-90, le=90)
+    lng: float = Field(ge=-180, le=180)
+    accuracy: float | None = Field(default=None, ge=0)
+
+
 class AlertOut(ORMModel):
     id: int
     created_at: datetime
+    lat: float | None = None
+    lng: float | None = None
+    accuracy: float | None = None
 
     @field_serializer("created_at")
     def serialize_created_at(self, value: datetime) -> str:

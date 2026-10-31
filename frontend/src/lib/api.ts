@@ -18,7 +18,15 @@ export type Person = { id: number; name: string; relationship: string; descripto
 
 export type NewPerson = Omit<Person, "id">;
 
-export type Alert = { id: number; created_at: string };
+export type LostLocation = { lat: number; lng: number; accuracy: number | null };
+
+export type Alert = {
+  id: number;
+  created_at: string;
+  lat: number | null;
+  lng: number | null;
+  accuracy: number | null;
+};
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
@@ -37,7 +45,11 @@ export const updateStep = (id: number, done: boolean) =>
 export const getPeople = () => request<Person[]>("/people");
 export const createPerson = (person: NewPerson) =>
   request<Person>("/people", { method: "POST", body: JSON.stringify(person) });
-export const reportLost = () => request<Alert>("/lost", { method: "POST" });
+export const reportLost = (location: LostLocation | null) =>
+  request<Alert>("/lost", {
+    method: "POST",
+    ...(location && { body: JSON.stringify(location) }),
+  });
 export const getAlerts = () => request<Alert[]>("/alerts");
 
 // ---- Lost Mode: cached so the modal works instantly and offline ----
@@ -68,11 +80,39 @@ export async function refreshLostInfo(): Promise<LostInfo | null> {
   }
 }
 
+// ---- Location for the Lost alert ----
+
+/**
+ * Get the current location, or null if it is unavailable or denied.
+ * Gives up after `timeoutMs` in total, including time spent on a permission prompt. Never throws.
+ */
+export function getLocation(timeoutMs = 8000): Promise<LostLocation | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(null);
+    const timer = setTimeout(() => resolve(null), timeoutMs);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        clearTimeout(timer);
+        resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, accuracy: pos.coords.accuracy });
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      },
+      // A fix up to 1 minute old is fine and comes back instantly.
+      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 60_000 },
+    );
+  });
+}
+
 /** Send POST /lost in the background, retrying quietly. Never throws. */
-export async function reportLostWithRetry(attempts = 5): Promise<Alert | null> {
+export async function reportLostWithRetry(
+  location: LostLocation | null,
+  attempts = 5,
+): Promise<Alert | null> {
   for (let i = 0; i < attempts; i++) {
     try {
-      return await reportLost();
+      return await reportLost(location);
     } catch {
       await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
     }

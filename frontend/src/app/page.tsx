@@ -1,14 +1,17 @@
+import DateTimeCard from "@/components/DateTimeCard";
 import FaceCamera from "@/components/FaceCamera";
 import LostButton from "@/components/LostButton";
 import NextUpCard from "@/components/NextUpCard";
+import TopBar from "@/components/TopBar";
 
 export default function Dashboard() {
   return (
-    <main className="mx-auto flex max-w-lg flex-col gap-5 px-4 py-5">
-      <LostButton />
-      <h1 className="text-2xl font-bold text-slate-200">Hey there, sleepyhead. Here&apos;s your day.</h1>
-      <NextUpCard />
-      <FaceCamera />
+    <main className="mx-auto flex max-w-lg flex-col gap-3 px-4 pb-4">
+      <TopBar />
+      <div className="fade-up" style={{ animationDelay: "0.05s" }}><LostButton /></div>
+      <div className="fade-up" style={{ animationDelay: "0.1s" }}><DateTimeCard /></div>
+      <div className="fade-up" style={{ animationDelay: "0.15s" }}><NextUpCard /></div>
+      <div className="fade-up" style={{ animationDelay: "0.2s" }}><FaceCamera /></div>
     </main>
   );
 }

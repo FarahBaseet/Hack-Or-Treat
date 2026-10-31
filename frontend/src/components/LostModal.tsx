@@ -24,7 +24,7 @@ export default function LostModal({ info, onClose }: Props) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="lost-title"
-      className="fixed inset-0 z-50 overflow-y-auto bg-slate-950 px-4 py-4 text-white"
+      className="fixed inset-0 z-50 overflow-y-auto bg-graveyard px-4 py-4 text-white"
     >
       <div className="mx-auto flex min-h-full max-w-lg flex-col gap-3">
         <div>

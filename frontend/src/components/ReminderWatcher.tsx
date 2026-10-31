@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { getRoutine, type RoutineStep } from "@/lib/api";
 import { formatTime } from "@/lib/routine";
 
-const LEAD_MINUTES = 150; // remind this many minutes before a step
+const LEAD_MINUTES = 5; // remind this many minutes before a step
 const CHECK_EVERY_MS = 15_000; // how often we look at the clock
 const REFETCH_EVERY_MS = 30_000; // how often we re-read the routine from the API
 

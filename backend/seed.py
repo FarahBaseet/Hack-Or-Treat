@@ -1,4 +1,4 @@
-"""Create tables and insert zombie-themed demo data. Safe to re-run: wipes and reseeds."""
+"""Create tables and insert demo data. Safe to re-run: wipes and reseeds."""
 
 from app import models
 from app.db import Base, SessionLocal, engine
@@ -12,17 +12,17 @@ def seed() -> None:
         db.add(
             models.Profile(
                 name="Zed Shambles",
-                home_address="13 Graveyard Lane, Hollow Creek, OR 97013",
-                emergency_contact_name="Mort Shambles (brother)",
-                emergency_contact_phone="+1-555-013-1031",
+                home_address="7 Hart House Circle, Toronto, ON",
+                emergency_contact_name="Farah Baseet (caregiver)",
+                emergency_contact_phone="+1 (647) 454-5200",
             )
         )
         db.add_all(
             [
-                models.Place(name="Home (the crypt with the blue door)", address="13 Graveyard Lane, Hollow Creek, OR 97013"),
-                models.Place(name="Brainy Bites Cafe", address="42 Cerebellum St, Hollow Creek, OR 97013"),
-                models.Place(name="Hollow Creek Library", address="7 Moonlight Ave, Hollow Creek, OR 97013"),
-                models.Place(name="St. Lazarus Clinic", address="100 Revival Rd, Hollow Creek, OR 97013"),
+                models.Place(name="Home (Hart House)", address="7 Hart House Circle, Toronto, ON"),
+                models.Place(name="Robarts Library", address="130 St George St, Toronto, ON"),
+                models.Place(name="Bahen Centre", address="40 St George St, Toronto, ON"),
+                models.Place(name="Toronto General Hospital", address="200 Elizabeth St, Toronto, ON"),
             ]
         )
         db.add_all(

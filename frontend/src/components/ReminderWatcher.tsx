@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { getRoutine, type RoutineStep } from "@/lib/api";
 import { formatTime } from "@/lib/routine";
 
-const LEAD_MINUTES = 150; // remind this many minutes before a step
+const LEAD_MINUTES = 5; // remind this many minutes before a step
 const CHECK_EVERY_MS = 15_000; // how often we look at the clock
 const REFETCH_EVERY_MS = 30_000; // how often we re-read the routine from the API
 
@@ -67,17 +67,28 @@ function minutesUntil(hhmm: string, now: Date) {
   return h * 60 + m - (now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60);
 }
 
+/** "In 1 hr 5 min", "In 30 min", "Now" */
+function timeLeftLabel(hhmm: string) {
+  const mins = Math.round(minutesUntil(hhmm, new Date()));
+  if (mins <= 0) return "Now";
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h === 0) return `In ${m} min`;
+  return m === 0 ? `In ${h} hr` : `In ${h} hr ${m} min`;
+}
+
 export default function ReminderWatcher() {
   const pathname = usePathname();
   const isCaregiver = pathname?.startsWith("/caregiver") ?? false;
-  const [toasts, setToasts] = useState<RoutineStep[]>([]);
+  const [toasts, setToasts] = useState<{ step: RoutineStep; label: string }[]>([]);
   const [enabled, setEnabled] = useState(false);
 
   const fire = useCallback((step: RoutineStep) => {
+    const label = timeLeftLabel(step.time);
     playChime();
-    setToasts((t) => [...t, step]);
+    setToasts((t) => [...t, { step, label }]);
     if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(`In ${LEAD_MINUTES} minutes (${formatTime(step.time)})`, { body: step.task });
+      new Notification(`${label} (${formatTime(step.time)})`, { body: step.task });
     }
   }, []);
 
@@ -131,6 +142,18 @@ export default function ReminderWatcher() {
     }
     setEnabled(true);
     playChime(); // test chime so you know it works
+
+    // Preview: show the next step's reminder 3s after turning reminders on
+    setTimeout(async () => {
+      try {
+        const steps = await getRoutine();
+        const next =
+          steps.find((s) => !s.done && minutesUntil(s.time, new Date()) > 0) ?? steps[0];
+        if (next) fire(next);
+      } catch {
+        /* backend down */
+      }
+    }, 3000);
   };
 
   if (isCaregiver) return null;
@@ -147,7 +170,7 @@ export default function ReminderWatcher() {
       )}
 
       <div className="fixed inset-x-0 top-4 z-50 flex flex-col items-center gap-2 px-4">
-        {toasts.map((step) => (
+        {toasts.map(({ step, label }) => (
           <div
             key={step.id}
             role="alert"
@@ -156,12 +179,12 @@ export default function ReminderWatcher() {
             <span className="text-2xl">⏰</span>
             <div className="flex-1">
               <p className="text-sm font-bold uppercase">
-                In {LEAD_MINUTES} min · {formatTime(step.time)}
+                {label} · {formatTime(step.time)}
               </p>
               <p className="text-lg font-semibold">{step.task}</p>
             </div>
             <button
-              onClick={() => setToasts((t) => t.filter((x) => x.id !== step.id))}
+              onClick={() => setToasts((t) => t.filter((x) => x.step.id !== step.id))}
               className="rounded-lg bg-slate-950 px-3 py-1 text-sm font-bold text-white"
             >
               Got it

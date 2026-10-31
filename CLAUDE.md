@@ -22,7 +22,7 @@ zombie-app/
 │   ├── .env.local            # NEXT_PUBLIC_API_URL=http://localhost:8000
 │   ├── public/models/        # face-api model files
 │   └── src/
-│       ├── app/              # pages: dashboard, routine, caregiver
+│       ├── app/              # pages: dashboard, routine, caregiver, and direct /enroll demo page
 │       ├── components/       # LostButton, LostModal, NextUpCard, FaceCamera, ...
 │       └── lib/
 │           ├── api.ts        # all fetch calls to the backend
@@ -61,6 +61,7 @@ zombie-app/
 - A button opens the camera (`getUserMedia`) and shows the matched person's name and relationship.
 - Matching runs in the browser with face-api. Each person's 128-d descriptor is stored in the database; the frontend fetches all people on load and uses `FaceMatcher` with a distance threshold of about 0.5 to 0.6.
 - Support enrolling a person: capture 2 to 3 photos, average or store their descriptors, and save via `POST /people`.
+- For the demo, `/enroll` is a separate page opened by URL and is intentionally not linked from the dashboard. It captures three consenting-person samples in the browser, averages their descriptors, and sends only the descriptor to the API; it does not save photos.
 - face-api must load on the client only: `dynamic(() => import(...), { ssr: false })`. Model files live in `frontend/public/models`. If the bundler complains about Node modules such as `fs`, add a webpack fallback in `next.config.js`.
 
 ### Caregiver page

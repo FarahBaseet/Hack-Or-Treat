@@ -8,10 +8,10 @@ export default function Dashboard() {
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-3 px-4 pb-4">
       <TopBar />
-      <div className="fade-up" style={{ animationDelay: "0.05s" }}><LostButton /></div>
+      <LostButton />
       <div className="fade-up" style={{ animationDelay: "0.1s" }}><DateTimeCard /></div>
       <div className="fade-up" style={{ animationDelay: "0.15s" }}><NextUpCard /></div>
-      <div className="fade-up" style={{ animationDelay: "0.2s" }}><FaceCamera /></div>
+      <FaceCamera />
     </main>
   );
 }

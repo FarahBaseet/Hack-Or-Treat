@@ -124,13 +124,25 @@ export default function ReminderWatcher() {
     return () => clearInterval(timer);
   }, [isCaregiver, fire]);
 
-  const enable = async () => {
+    const enable = async () => {
     unlockAudio();
     if ("Notification" in window && Notification.permission === "default") {
       await Notification.requestPermission();
     }
     setEnabled(true);
     playChime(); // test chime so you know it works
+
+    // Preview: show the next step's reminder 3s after turning reminders on
+    setTimeout(async () => {
+      try {
+        const steps = await getRoutine();
+        const next =
+          steps.find((s) => !s.done && minutesUntil(s.time, new Date()) > 0) ?? steps[0];
+        if (next) fire(next);
+      } catch {
+        /* backend down */
+      }
+    }, 3000);
   };
 
   if (isCaregiver) return null;

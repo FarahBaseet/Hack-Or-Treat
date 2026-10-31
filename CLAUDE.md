@@ -22,7 +22,7 @@ zombie-app/
 │   ├── .env.local            # NEXT_PUBLIC_API_URL=http://localhost:8000
 │   ├── public/models/        # face-api model files
 │   └── src/
-│       ├── app/              # pages: dashboard, routine, caregiver, and direct /enroll demo page
+│       ├── app/              # pages: demo login, dashboard, routine, caregiver, and direct /enroll demo page
 │       ├── components/       # LostButton, LostModal, NextUpCard, FaceCamera, ...
 │       └── lib/
 │           ├── api.ts        # all fetch calls to the backend
@@ -78,7 +78,7 @@ zombie-app/
 | `people` | id, name, relationship, descriptor (JSON list of 128 floats) |
 | `alerts` | id, created_at, lat, lng, accuracy (meters); the last three are nullable |
 
-There is no login. Use a single hard-coded user and caregiver for the demo. `seed.py` creates the tables and inserts the demo data.
+The landing page has a demo-only sign-in that accepts any non-empty email and password and redirects to `/caregiver`. It does not authenticate or store credentials; pages and APIs remain publicly accessible. Use a single hard-coded user for the demo. Configure `CAREGIVER_EMAIL` in `backend/.env` for lost-alert email delivery. `seed.py` creates the tables and inserts the demo data.
 
 ## API contract
 

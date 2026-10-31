@@ -26,10 +26,10 @@ export default function RoutinePage() {
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-5 px-4 py-5">
       <Link
-        href="/"
+        href="/dashboard"
         className="flex min-h-14 items-center justify-center rounded-xl border-2 border-white text-xl font-bold"
       >
-        ← Back home
+        ← Dashboard
       </Link>
       <h1 className="text-3xl font-extrabold">Today&apos;s routine</h1>
 

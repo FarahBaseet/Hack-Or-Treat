@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { getAlerts, type Alert } from "@/lib/api";
 import { connectCaregiver } from "@/lib/socket";
 
@@ -62,6 +63,12 @@ export default function CaregiverPage() {
 
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-5 px-4 py-5">
+      <Link
+        href="/dashboard"
+        className="flex min-h-14 items-center justify-center rounded-xl border-2 border-white text-xl font-bold"
+      >
+        ← Zombie dashboard
+      </Link>
       <h1 className="text-3xl font-extrabold">Caregiver</h1>
       <p className={`text-lg font-semibold ${connected ? "text-green-400" : "text-amber-300"}`}>
         {connected ? "● Live: watching for alerts" : "● Reconnecting..."}

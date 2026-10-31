@@ -74,6 +74,13 @@ export default function CaregiverPage() {
         {connected ? "● Live: watching for alerts" : "● Reconnecting..."}
       </p>
 
+      <Link
+        href="/enroll"
+        className="flex min-h-14 items-center justify-center rounded-xl bg-indigo-700 px-4 text-xl font-bold text-white"
+      >
+        Add a familiar face
+      </Link>
+
       {latest && (
         <div role="alert" className="rounded-2xl bg-red-600 p-5 text-white ring-4 ring-red-300">
           <p className="text-2xl font-extrabold">Your zombie pressed &quot;I&apos;m Lost&quot;</p>

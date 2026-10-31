@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import ReminderWatcher from "@/components/ReminderWatcher";
 
 export const metadata: Metadata = {
   title: "Zombie Helper",
@@ -15,7 +16,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className="h-full antialiased">
-      <body className="min-h-full bg-slate-900 text-white">{children}</body>
+      <body className="min-h-full bg-slate-900 text-white">
+        {children}
+        <ReminderWatcher />
+      </body>
     </html>
   );
 }

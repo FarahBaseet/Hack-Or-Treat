@@ -10,7 +10,7 @@ A Halloween-themed assistive web app for a zombie character with "brain fog." It
 | Face recognition | `@vladmandic/face-api`, runs in the browser |
 | Backend | FastAPI + SQLAlchemy (or SQLModel) |
 | Database | SQLite (single file, `zombie.db`), no Docker |
-| Live alerts | FastAPI WebSockets + browser Notification API |
+| Live alerts | FastAPI WebSockets + browser Notification API, plus an email to the caregiver (Python `smtplib`, no extra package) |
 
 ## Repo layout
 
@@ -48,6 +48,8 @@ zombie-app/
 - Big, red, pinned at the top of the dashboard, easy to hit in a panic.
 - Tapping it opens a modal showing home address, emergency contact, and familiar places.
 - It also calls `POST /lost`, which saves an alert and broadcasts it to the caregiver over WebSocket.
+- Location: the dashboard asks for location permission on load. On press, the modal opens first; then the browser Geolocation API gets a fix (gives up after about 8 s) and `POST /lost` is sent with `{ lat, lng, accuracy }`, or with no body if there is no location. No map library or API key: the email contains plain Google Maps and Apple Maps links.
+- `POST /lost` also emails the caregiver (`CAREGIVER_EMAIL`) as a background task after responding. SMTP settings live in `backend/.env`; if they are empty, email is skipped. Email failures are logged, never returned to the frontend.
 - Cache profile and places data in `localStorage` after the first load, so the modal appears instantly and still works if the backend is down. If `POST /lost` fails, fail quietly and retry; never block the modal on the network.
 
 ### 2. Next Up card
@@ -73,7 +75,7 @@ zombie-app/
 | `places` | id, name, address |
 | `routine_steps` | id, time (HH:MM), task, done (bool) |
 | `people` | id, name, relationship, descriptor (JSON list of 128 floats) |
-| `alerts` | id, created_at |
+| `alerts` | id, created_at, lat, lng, accuracy (meters); the last three are nullable |
 
 There is no login. Use a single hard-coded user and caregiver for the demo. `seed.py` creates the tables and inserts the demo data.
 
@@ -89,9 +91,9 @@ Base URL: `http://localhost:8000`. All bodies are JSON. Frontend devs can mock t
 | PATCH | `/routine/{id}` | `{ done: boolean }` | the updated step |
 | GET | `/people` | | `[{ id, name, relationship, descriptor }]` |
 | POST | `/people` | `{ name, relationship, descriptor }` | the created person |
-| POST | `/lost` | none | the created alert `{ id, created_at }`; also broadcasts it |
-| GET | `/alerts` | | recent alerts, newest first (limit 20) |
-| WS | `/ws/caregiver` | | pushes `{ type: "lost", alert: { id, created_at } }` |
+| POST | `/lost` | optional `{ lat, lng, accuracy }` | the created alert `{ id, created_at, lat, lng, accuracy }`; also broadcasts it and emails the caregiver |
+| GET | `/alerts` | | recent alerts `[{ id, created_at, lat, lng, accuracy }]`, newest first (limit 20) |
+| WS | `/ws/caregiver` | | pushes `{ type: "lost", alert: { id, created_at, lat, lng, accuracy } }` |
 
 If you change the contract, update this file in the same commit.
 
@@ -129,7 +131,7 @@ The camera requires `localhost` or HTTPS. For a phone demo, expose the frontend 
 |---|---|
 | Frontend dev | Dashboard layout, Lost Mode modal, routine page, caregiver page UI, styling and mobile responsiveness |
 | Backend dev A | Models, seed script, profile/places/routine/people routes, keeping the API contract accurate |
-| Backend dev B | `POST /lost`, WebSocket manager, caregiver broadcast, demo script, seed content, pitch deck |
+| Backend dev B | `POST /lost`, WebSocket manager, caregiver broadcast and email alert, demo script, seed content, pitch deck |
 | Full stack | face-api integration (models, enrollment, matching loop, saving descriptors), `api.ts` and `socket.ts` wiring, browser notifications, integration testing |
 
 Stay in your own area to avoid merge conflicts, and merge often.
@@ -144,7 +146,7 @@ Stay in your own area to avoid merge conflicts, and merge often.
 ## Known limits (for the demo and pitch)
 
 - No authentication; one hard-coded user.
-- The caregiver is told that the user is lost but not where; the alert carries no location.
+- The alert carries a one-time location snapshot from the browser, not live tracking. It is missing if permission is denied or no fix arrives within about 8 s, and laptop locations (Wi-Fi based) can be off by tens of meters or more. Location is sensitive data and is stored unencrypted in the demo.
 - Browser notifications only work while the caregiver page is open (and on iPhone only if installed to the home screen).
 - Face descriptors are sensitive data. They are stored unencrypted in the demo; a real version would need consent, encryption, and access control.
 - This is a demo, not a safety device. It does not replace real emergency tools.

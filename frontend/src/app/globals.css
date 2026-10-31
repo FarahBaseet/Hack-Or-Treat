@@ -1,1 +1,82 @@
 @import "tailwindcss";
+/* ===== App theme ===== */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f5f7fb;
+  --surface: rgba(255, 255, 255, 0.75);
+  --text: #1f2937;
+  --muted: #6b7280;
+  --accent: #2563eb;
+  --accent-2: #0ea5e9;
+  --border: rgba(15, 23, 42, 0.08);
+  --glow-1: rgba(37, 99, 235, 0.18);
+  --glow-2: rgba(14, 165, 233, 0.18);
+}
+
+.dark {
+  --bg: #0b1120;
+  --surface: rgba(30, 41, 59, 0.6);
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --border: rgba(255, 255, 255, 0.08);
+  --glow-1: rgba(37, 99, 235, 0.25);
+  --glow-2: rgba(14, 165, 233, 0.15);
+}
+
+body {
+  background:
+    radial-gradient(circle at 10% 0%, var(--glow-1), transparent 45%),
+    radial-gradient(circle at 90% 35%, var(--glow-2), transparent 45%),
+    var(--bg);
+  background-attachment: fixed;
+  color: var(--text);
+  transition: background 0.3s, color 0.3s;
+  min-height: 100vh;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.25);
+}
+
+.muted { color: var(--muted); }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 1rem;
+  padding: 0.85rem 1.25rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  box-shadow: 0 8px 20px -8px var(--accent);
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.btn:hover { transform: translateY(-2px); box-shadow: 0 12px 24px -8px var(--accent); }
+.btn:active { transform: scale(0.97); }
+
+.btn-danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  box-shadow: 0 10px 30px -8px rgba(239, 68, 68, 0.6);
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.5); }
+  70%  { box-shadow: 0 0 0 16px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.pulse { animation: pulse-ring 2s infinite; }
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: none; }
+}
+.fade-up { animation: fade-up 0.5s ease both; }

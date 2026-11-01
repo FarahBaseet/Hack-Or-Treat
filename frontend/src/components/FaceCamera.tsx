@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { getPeople, type Person } from "@/lib/api";
 import { box, CameraIcon, focusRing, tile } from "./ui";
 
@@ -43,13 +44,20 @@ export default function FaceCamera() {
   }, []);
 
   const playRecognitionChime = useCallback(() => {
+    if (!audioContextRef.current || audioContextRef.current.state === "closed") {
+      try {
+        audioContextRef.current = new window.AudioContext();
+      } catch {
+        setSoundError("Recognition sound is unavailable in this browser.");
+        return;
+      }
+    }
     const audioContext = audioContextRef.current;
-    if (!audioContext || audioContext.state !== "running") {
-      setSoundError("Recognition sound is unavailable. Check your browser audio settings.");
-      return;
+    if (audioContext.state !== "running") {
+      void audioContext.resume().catch(() => undefined);
     }
 
-    const startAt = audioContext.currentTime;
+    const startAt = audioContext.currentTime + 0.05;
     [880, 1108.73, 1318.51].forEach((frequency, index) => {
       const start = startAt + index * 0.11;
       const oscillator = audioContext.createOscillator();
@@ -313,10 +321,18 @@ export default function FaceCamera() {
       );
       unknownAudioRef.current.preload = "auto";
       try {
-        audioContextRef.current ??= new window.AudioContext();
-        void audioContextRef.current.resume().catch(() => {
-          setSoundError("Recognition sound is unavailable. Check your browser audio settings.");
-        });
+        // Fresh sound player on every open, unlocked by this click.
+        if (audioContextRef.current && audioContextRef.current.state !== "closed") {
+          void audioContextRef.current.close().catch(() => undefined);
+        }
+        const audioContext = new window.AudioContext();
+        audioContextRef.current = audioContext;
+        void audioContext.resume().catch(() => undefined);
+        // Play a silent blip so Safari/Chrome allow sound later.
+        const silent = audioContext.createBufferSource();
+        silent.buffer = audioContext.createBuffer(1, 1, 22050);
+        silent.connect(audioContext.destination);
+        silent.start(0);
       } catch {
         setSoundError("Recognition sound is unavailable in this browser.");
       }
@@ -389,10 +405,23 @@ export default function FaceCamera() {
                 const width = right - x;
                 const height = bottom - y;
                 const cornerLength = Math.min(width, height) * 0.22;
+                // Caregivers get a gold box; everyone else the team's colours.
+                const relationship = person?.relationship.trim().toLowerCase() ?? "";
+                const isCaregiver = relationship === "caregiver";
                 const color =
-                  status === "recognized" ? "#86efac" : status === "unknown" ? "#f87171" : "#67e8f9";
+                  status === "recognized"
+                    ? isCaregiver
+                      ? "#fcd34d"
+                      : "#86efac"
+                    : status === "unknown"
+                      ? "#f87171"
+                      : "#67e8f9";
                 const label = status === "recognized" && person
-                  ? `Friendly human, ${person.name} — DO NOT EAT`
+                  ? isCaregiver
+                    ? `${person.name}, your caregiver`
+                    : relationship === "self"
+                      ? `This is you, ${person.name}`
+                      : `${person.name}, your ${relationship}`
                   : status === "unknown"
                     ? "Unknown Person"
                     : "Checking identity...";
@@ -482,6 +511,12 @@ export default function FaceCamera() {
             {soundError}
           </p>
         )}
+        <Link
+          href="/enroll"
+          className={`${box} ${focusRing} flex min-h-15 w-full items-center justify-center px-4 font-display text-[1.375rem] font-bold text-who`}
+        >
+          Add a face (caregiver)
+        </Link>
         <button
           type="button"
           onClick={toggleCamera}

@@ -28,10 +28,33 @@ export type Alert = {
   accuracy: number | null;
 };
 
+// ---- Sign-in token: the backend only answers signed-in users ----
+
+type ClerkLike = {
+  loaded?: boolean;
+  session?: { getToken: () => Promise<string | null> } | null;
+};
+
+/** Get the signed-in user's token from Clerk (waits up to 5 s for Clerk to load). */
+export async function getAuthToken(): Promise<string | null> {
+  if (typeof window === "undefined") return null;
+  for (let i = 0; i < 50; i++) {
+    const clerk = (window as unknown as { Clerk?: ClerkLike }).Clerk;
+    if (clerk?.loaded) return (await clerk.session?.getToken()) ?? null;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  return null;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await getAuthToken();
   const res = await fetch(`${API_URL}${path}`, {
     ...init,
-    headers: { "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+      ...init?.headers,
+    },
   });
   if (!res.ok) throw new Error(`${init?.method ?? "GET"} ${path} failed: ${res.status}`);
   return res.json() as Promise<T>;

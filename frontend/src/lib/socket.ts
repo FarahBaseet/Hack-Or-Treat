@@ -1,6 +1,6 @@
 // WebSocket client for the caregiver page. Reconnects automatically.
 
-import { API_URL, type Alert } from "./api";
+import { API_URL, getAuthToken, type Alert } from "./api";
 
 type LostMessage = { type: "lost"; alert: Alert };
 
@@ -18,8 +18,11 @@ export function connectCaregiver({ onAlert, onOpen, onStatus }: Handlers): () =>
   let retryTimer: ReturnType<typeof setTimeout> | undefined;
   let closed = false;
 
-  const open = () => {
-    socket = new WebSocket(url);
+  const open = async () => {
+    // The backend needs the sign-in token; WebSockets can't send headers, so it goes in the URL.
+    const token = await getAuthToken();
+    if (closed) return;
+    socket = new WebSocket(token ? `${url}?token=${encodeURIComponent(token)}` : url);
     socket.onopen = () => {
       onStatus?.(true);
       onOpen?.();
@@ -34,11 +37,11 @@ export function connectCaregiver({ onAlert, onOpen, onStatus }: Handlers): () =>
     };
     socket.onclose = () => {
       onStatus?.(false);
-      if (!closed) retryTimer = setTimeout(open, 3000);
+      if (!closed) retryTimer = setTimeout(() => void open(), 3000);
     };
   };
 
-  open();
+  void open();
 
   return () => {
     closed = true;

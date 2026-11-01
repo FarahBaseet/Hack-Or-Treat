@@ -1,6 +1,6 @@
-# MemoryMate home screen: implementation brief
+# BrainBridge home screen: implementation brief
 
-Implement this home screen in the existing MemoryMate front end. Use the project's current framework, component and styling conventions (do not introduce a new framework). If there is no front end yet, use plain HTML/CSS/JS or whatever the repo already uses.
+Implement this home screen in the existing BrainBridge front end. Use the project's current framework, component and styling conventions (do not introduce a new framework). If there is no front end yet, use plain HTML/CSS/JS or whatever the repo already uses.
 
 The audience may have memory difficulties, so clarity, big tap targets and calm colour matter more than decoration.
 

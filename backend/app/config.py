@@ -17,9 +17,6 @@ class Settings(BaseSettings):
     smtp_user: str = ""
     smtp_password: str = ""
     caregiver_email: str = ""
-        # Online (Render free plan blocks Gmail's SMTP), so send through Resend's web API instead.
-    # When RESEND_API_KEY is set, it is used; otherwise the Gmail SMTP settings above are used.
-    resend_api_key: str = ""
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
